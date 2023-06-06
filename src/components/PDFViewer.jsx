@@ -6,9 +6,24 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/$
 const PDFViewer = ({ pdfFile }) => {
   const [numPages, setNumPages] = useState(null);
   const [pdfData, setPdfData] = useState(null);
+  const [pdfText, setPdfText] = useState(null);
+  const [fullText, setFullText] = useState("");
 
   const onDocumentLoadSuccess = ({ numPages }) => {
     setNumPages(numPages);
+    console.log("Número de páginas ONDOCUMENTLOAD:", numPages);
+  };
+
+  const extractTextFromPage = async (page) => {
+    const textContent = await page.getTextContent();
+    const textItems = textContent.items;
+    let pageText = "";
+
+    for (let i = 0; i < textItems.length; i++) {
+      pageText += textItems[i].str + " ";
+    }
+
+    return pageText;
   };
 
   useEffect(() => {
@@ -35,6 +50,45 @@ const PDFViewer = ({ pdfFile }) => {
     }
   }, [pdfFile]);
 
+  useEffect(() => {
+    const extractTextFromPdf = async () => {
+      if (pdfData) {
+        try {
+          const pdf = await pdfjs.getDocument(pdfData).promise;
+          let pdfText = "";
+          console.log("Número de páginas antes del for:", numPages);
+          for (let i = 1; i <= numPages; i++) {
+            const page = await pdf.getPage(i);
+            console.log(
+              "ASDJASDJADASDJASJDASJDAJDASJDASJDKKSDKASDDADSDSDKASDASKDASKDSAKDKASDKASDKOASDASÑDAS-ODAÑJDASJÑDASJÑODASKÑDASLKDAKÑLDASKÑDSAÑKDASÑLKDASKÑLDASÑKDASÑDÑASKDKÑSADÑKASDKÑADÑKSAKÑDASKÑD",
+              page
+            );
+            const pageText = await extractTextFromPage(page);
+            pdfText += pageText;
+          }
+
+          setPdfText(pdfText);
+        } catch (error) {
+          console.error("Error extracting text from PDF:", error);
+        }
+      }
+    };
+
+    if (numPages && numPages > 0) {
+      extractTextFromPdf();
+    }
+  }, [pdfData, numPages]);
+
+  useEffect(() => {
+    if (pdfText) {
+      setFullText(pdfText);
+    }
+  }, [pdfText]);
+
+  useEffect(() => {
+    console.log(fullText);
+  }, [fullText]);
+
   return (
     <div>
       {pdfData ? (
@@ -46,6 +100,7 @@ const PDFViewer = ({ pdfFile }) => {
       ) : (
         <p>No PDF file selected.</p>
       )}
+      {fullText && <div>{fullText}</div>}
     </div>
   );
 };
